@@ -1,0 +1,326 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+
+local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+if not getgenv().Network then
+    getgenv().Network = {
+        BaseParts = {},
+        Velocity = Vector3.new(14.46262424, 14.46262424, 14.46262424)
+    }
+
+    Network.RetainPart = function(Part)
+        if typeof(Part) == "Instance" and Part:IsA("BasePart") and Part:IsDescendantOf(Workspace) then
+            table.insert(Network.BaseParts, Part)
+            Part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+            Part.CanCollide = false
+        end
+    end
+
+    local function EnablePartControl()
+        LocalPlayer.ReplicationFocus = Workspace
+        RunService.Heartbeat:Connect(function()
+            sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+            for _, Part in pairs(Network.BaseParts) do
+                if Part:IsDescendantOf(Workspace) then
+                    Part.Velocity = Network.Velocity
+                end
+            end
+        end)
+    end
+
+    EnablePartControl()
+end
+
+-- 添加爆炸效果函数
+local function createExplosionEffect(position)
+    local explosion = Instance.new("Explosion")
+    explosion.Position = position
+    explosion.BlastPressure = 0 -- 防止炸飞玩家
+    explosion.BlastRadius = 10
+    explosion.Visible = false -- 隐藏爆炸视觉效果
+    explosion.Parent = Workspace
+    
+    -- 创建爆炸粒子效果
+    local part = Instance.new("Part")
+    part.Size = Vector3.new(1, 1, 1)
+    part.Position = position
+    part.Anchored = true
+    part.CanCollide = false
+    part.Transparency = 1
+    part.Parent = Workspace
+    
+    local particle = Instance.new("ParticleEmitter")
+    particle.Texture = "rbxassetid://2486047916" -- 爆炸纹理
+    particle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 5),
+        NumberSequenceKeypoint.new(1, 0)
+    })
+    particle.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0),
+        NumberSequenceKeypoint.new(1, 1)
+    })
+    particle.Lifetime = NumberRange.new(0.5, 1)
+    particle.Rate = 50
+    particle.Speed = NumberRange.new(10, 20)
+    particle.Rotation = NumberRange.new(0, 360)
+    particle.Parent = part
+    
+    -- 5秒后删除效果
+    delay(5, function()
+        part:Destroy()
+    end)
+end
+
+local function ForcePart(v)
+    if v:IsA("Part") and not v.Anchored and not v.Parent:FindFirstChild("Humanoid") and not v.Parent:FindFirstChild("Head") and v.Name ~= "Handle" then
+        for _, x in next, v:GetChildren() do
+            if x:IsA("BodyAngularVelocity") or x:IsA("BodyForce") or x:IsA("BodyGyro") or x:IsA("BodyPosition") or x:IsA("BodyThrust") or x:IsA("BodyVelocity") or x:IsA("RocketPropulsion") then
+                x:Destroy()
+            end
+        end
+        if v:FindFirstChild("Attachment") then
+            v:FindFirstChild("Attachment"):Destroy()
+        end
+        if v:FindFirstChild("AlignPosition") then
+            v:FindFirstChild("AlignPosition"):Destroy()
+        end
+        if v:FindFirstChild("Torque") then
+            v:FindFirstChild("Torque"):Destroy()
+        end
+        v.CanCollide = false
+        
+        -- 创建爆炸效果
+        createExplosionEffect(v.Position)
+        
+        -- 给零件一个随机的爆炸力
+        local randomForce = Instance.new("BodyVelocity", v)
+        randomForce.Velocity = Vector3.new(
+            math.random(-100, 100),
+            math.random(50, 100),  -- 向上多一些力
+            math.random(-100, 100)
+        )
+        randomForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        
+        -- 添加随机旋转
+        local randomTorque = Instance.new("BodyAngularVelocity", v)
+        randomTorque.AngularVelocity = Vector3.new(
+            math.random(-20, 20),
+            math.random(-20, 20),
+            math.random(-20, 20)
+        )
+        randomTorque.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        
+        -- 5秒后删除物理效果
+        delay(5, function()
+            if randomForce and randomForce.Parent then
+                randomForce:Destroy()
+            end
+            if randomTorque and randomTorque.Parent then
+                randomTorque:Destroy()
+            end
+        end)
+    end
+end
+
+local StarterGui = game:GetService("StarterGui")
+local TextChatService = game:GetService("TextChatService")
+
+-- 创建GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SuperRingPartsGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 190)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -95)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 102, 51) -- 绿色
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
+
+-- 使GUI圆角
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 20)
+UICorner.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Text = "零件破坏者 v1"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255) -- 白色
+Title.BackgroundColor3 = Color3.fromRGB(0, 153, 76) -- 深一点的绿色
+Title.Font = Enum.Font.Fondamento -- 更优雅的字体
+Title.TextSize = 22
+Title.Parent = MainFrame
+
+-- 标题圆角
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 20)
+TitleCorner.Parent = Title
+
+local BreakButton = Instance.new("TextButton")
+BreakButton.Size = UDim2.new(0.8, 0, 0, 35)
+BreakButton.Position = UDim2.new(0.1, 0, 0.3, 0)
+BreakButton.Text = "开启破坏"
+BreakButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- 红色
+BreakButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- 白色
+BreakButton.Font = Enum.Font.Fondamento
+BreakButton.TextSize = 15
+BreakButton.Parent = MainFrame
+
+-- 破坏按钮圆角
+local BreakCorner = Instance.new("UICorner")
+BreakCorner.CornerRadius = UDim.new(0, 10)
+BreakCorner.Parent = BreakButton
+
+local Watermark = Instance.new("TextLabel")
+Watermark.Size = UDim2.new(1, 0, 0, 20)
+Watermark.Position = UDim2.new(0, 0, 1, -20)
+Watermark.Text = "零件破坏者 改制lukas!"
+Watermark.TextColor3 = Color3.fromRGB(255, 255, 255) -- 深棕色
+Watermark.BackgroundTransparency = 1
+Watermark.Font = Enum.Font.Fondamento
+Watermark.TextSize = 14
+Watermark.Parent = MainFrame
+
+-- 添加最小化按钮
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -35, 0, 5)
+MinimizeButton.Text = "-"
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- 绿色
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255) -- 白色
+MinimizeButton.Font = Enum.Font.Fondamento
+MinimizeButton.TextSize = 15
+MinimizeButton.Parent = MainFrame
+
+-- 最小化按钮圆角
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 15)
+MinimizeCorner.Parent = MinimizeButton
+
+-- 最小化功能
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        MainFrame:TweenSize(UDim2.new(0, 220, 0, 40), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "+"
+        BreakButton.Visible = false
+        Watermark.Visible = false
+    else
+        MainFrame:TweenSize(UDim2.new(0, 220, 0, 190), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "-"
+        BreakButton.Visible = true
+        Watermark.Visible = true
+    end
+end)
+
+-- 使GUI可拖动
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- 添加状态变量
+local isEnabled = false
+
+-- 按钮功能
+BreakButton.MouseButton1Click:Connect(function()
+    -- 切换状态
+    isEnabled = not isEnabled
+    
+    -- 根据状态改变按钮颜色和文本
+    if isEnabled then
+        BreakButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- 绿色表示开启
+        BreakButton.Text = "关闭破坏"
+        
+        -- 对工作空间中的所有零件应用ForcePart函数
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("Part") and not obj.Anchored and not obj.Parent:FindFirstChild("Humanoid") and not obj.Parent:FindFirstChild("Head") and obj.Name ~= "Handle" then
+                ForcePart(obj)
+            end
+        end
+        
+        StarterGui:SetCore("SendNotification", {
+            Title = "零件破坏者",
+            Text = "破坏功能已开启！零件正在崩飞！",
+            Duration = 3
+        })
+    else
+        BreakButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- 红色表示关闭
+        BreakButton.Text = "开启破坏"
+        
+        StarterGui:SetCore("SendNotification", {
+            Title = "零件破坏者",
+            Text = "破坏功能已关闭",
+            Duration = 3
+        })
+    end
+end)
+
+-- 获取玩家头像
+local userId = Players:GetUserIdFromNameAsync("Robloxlukasgames")
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size420x420
+local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+StarterGui:SetCore("SendNotification", {
+    Title = "零件破坏者",
+    Text = "准备破坏零件",
+    Icon = content,
+    Duration = 5
+})
+
+-- 添加自动检测并破坏新零件的功能
+local function autoDetectAndBreakParts()
+    Workspace.DescendantAdded:Connect(function(descendant)
+        if isEnabled and descendant:IsA("Part") and not descendant.Anchored and 
+           not descendant.Parent:FindFirstChild("Humanoid") and 
+           not descendant.Parent:FindFirstChild("Head") and 
+           descendant.Name ~= "Handle" then
+            -- 稍等片刻确保零件完全加载
+            wait(0.1)
+            ForcePart(descendant)
+        end
+    end)
+end
+
+-- 启动自动检测
+autoDetectAndBreakParts()
