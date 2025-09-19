@@ -4,6 +4,54 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Workspace = game:GetService("Workspace")
 
+-- 创建声明横幅
+local function createDisclaimer()
+    local disclaimerGui = Instance.new("ScreenGui")
+    disclaimerGui.Name = "DisclaimerGui"
+    disclaimerGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    disclaimerGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    local disclaimerFrame = Instance.new("Frame")
+    disclaimerFrame.Size = UDim2.new(0.6, 0, 0, 80)
+    disclaimerFrame.Position = UDim2.new(0.2, 0, 0.1, 0)
+    disclaimerFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    disclaimerFrame.BorderSizePixel = 0
+    disclaimerFrame.Parent = disclaimerGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = disclaimerFrame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(80, 80, 80)
+    stroke.Thickness = 2
+    stroke.Parent = disclaimerFrame
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -20, 1, -20)
+    textLabel.Position = UDim2.new(0, 10, 0, 10)
+    textLabel.Text = "本脚本完全免费，禁止贩卖！\n用我脚本圈钱的全家死光！\n作者：XTTT"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 16
+    textLabel.TextWrapped = true
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.Parent = disclaimerFrame
+    
+    -- 5秒后淡出消失
+    wait(5)
+    
+    for i = 1, 10 do
+        disclaimerFrame.BackgroundTransparency = i/10
+        textLabel.TextTransparency = i/10
+        stroke.Transparency = i/10
+        wait(0.1)
+    end
+    
+    disclaimerGui:Destroy()
+end
+
 -- 兼容性检查：确保必要函数存在
 if not getgenv then
     getgenv = function()
@@ -242,7 +290,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
         MinimizeButton.Text = "+"
         BreakButton.Visible = false
         Watermark.Visible = false
-        StatusIndicator.Visible = false
+    StatusIndicator.Visible = false
         StatusLabel.Visible = false
     else
         MainFrame:TweenSize(UDim2.new(0, 250, 0, 200), "Out", "Quad", 0.3, true)
@@ -355,3 +403,6 @@ end
 
 -- 启动自动检测
 autoDetectAndBreakParts()
+
+-- 显示声明横幅
+createDisclaimer()
