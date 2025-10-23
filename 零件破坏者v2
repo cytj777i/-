@@ -1,3 +1,4 @@
+--名字Ai想的 当时刚接触脚本 不会改ui名字 又懒得让Ai改就这样了 中二就中二了点吧🤔
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -452,7 +453,7 @@ local function setupScriptUserDetection()
             DetectionButton.Position = UDim2.new(0, 10, 0.5, -25)
             DetectionButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             DetectionButton.BackgroundTransparency = 0.5
-            DetectionButton.Image = "rbxassetid://118699785869207"
+            DetectionButton.Image = "rbxassetid://102966567251306"
             DetectionButton.Active = true
             DetectionButton.Draggable = true
             DetectionButton.Parent = DetectionGui
